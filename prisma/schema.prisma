@@ -1,0 +1,230 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =========== TENANTS (Multi-tenancy) ===========
+model Tenant {
+  id                String   @id @default(cuid())
+  name              String
+  country           String
+  industry_type     String   // e.g., "Steel Manufacturing", "Cement", "Chemical"
+  subscription_tier String   @default("FREE") // FREE | PRO | ENTERPRISE
+  expires_at        DateTime?
+  
+  users             User[]
+  calculations      Calculation[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([subscription_tier])
+}
+
+// =========== USERS & SESSIONS ===========
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  name              String?
+  password_hash     String?
+  role              String   @default("CLIENT") // CLIENT | ADMIN | SUPER_ADMIN
+  tenant_id         String
+  tenant            Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  
+  // OAuth
+  google_id         String?  @unique
+  github_id         String?  @unique
+  
+  // Permissions
+  is_active         Boolean  @default(true)
+  last_login        DateTime?
+  
+  calculations      Calculation[]
+  audit_logs        AuditLog[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([tenant_id])
+  @@index([email])
+}
+
+// NextAuth Sessions (auto-managed, don't edit directly)
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// =========== MATERIALS LIBRARY ===========
+model RawMaterial {
+  id                    String   @id @default(cuid())
+  name                  String
+  category              String   // Steel | Cement | Aluminum | Coal | Natural Gas | Biomass | etc
+  base_unit             String   // ton | kg | m3 | liter
+  description           String?
+  default_ef_kg_co2     Float    // kg CO2 per base unit (baseline, at world average grid)
+  
+  material_factors      MaterialFactor[]
+  calculations_items    CalculationItem[]
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([category])
+}
+
+// =========== GRID & COUNTRY FACTORS ===========
+model GridFactor {
+  id                      String   @id @default(cuid())
+  country                 String   @unique // ISO code or full name
+  country_code            String   @unique // ISO 3166-1 alpha-2
+  ef_kg_co2_kwh           Float    // Electricity grid emission factor
+  data_source             String?  // IEA, UNFCCC, etc
+  year_published          Int      // 2024, 2025, etc
+  
+  material_factors        MaterialFactor[]
+  calculations            Calculation[]
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+// =========== MATERIAL × COUNTRY EF MAPPING ===========
+model MaterialFactor {
+  id                      String   @id @default(cuid())
+  material_id             String
+  material                RawMaterial @relation(fields: [material_id], references: [id], onDelete: Cascade)
+  
+  grid_id                 String
+  grid                    GridFactor @relation(fields: [grid_id], references: [id], onDelete: Cascade)
+  
+  ef_kg_co2_unit          Float    // Emission factor for this material in this country
+  scope                   String   @default("1,2,3") // Scopes: "1" | "2" | "3" | "1,2,3"
+  gwp_factor              Float    @default(1.0) // Global Warming Potential multiplier
+  lifecycle_stage         String   @default("Cradle-to-Gate") // or "Cradle-to-Grave"
+  
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([material_id, grid_id])
+  @@index([material_id])
+  @@index([grid_id])
+}
+
+// =========== CALCULATIONS (USER RECORDS) ===========
+model Calculation {
+  id              String   @id @default(cuid())
+  user_id         String
+  user            User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  tenant_id       String
+  tenant          Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  
+  grid_id         String
+  grid            GridFactor @relation(fields: [grid_id], references: [id])
+  
+  calculation_name String?  // User-defined name for this batch
+  items           CalculationItem[] // Can have multiple items (Scope 1, 2, 3)
+  
+  // Results (aggregated)
+  total_e_kg      Float?
+  total_e_ton     Float?
+  total_credits_eu Float?
+  total_credits_vcc Float?
+  cbam_risk       String?  // Low | Medium | High
+  
+  // Metadata
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  @@index([user_id])
+  @@index([tenant_id])
+  @@index([created_at])
+}
+
+// =========== CALCULATION ITEMS (Individual material entries per calculation) ===========
+model CalculationItem {
+  id              String   @id @default(cuid())
+  calculation_id  String
+  calculation     Calculation @relation(fields: [calculation_id], references: [id], onDelete: Cascade)
+  
+  material_id     String
+  material        RawMaterial @relation(fields: [material_id], references: [id])
+  
+  // Inputs
+  activity        Float
+  unit            String   // ton | kg | m3 | etc
+  scope           String   @default("1,2,3") // Scope 1 | 2 | 3 (comma-separated)
+  gwp_factor      Float    @default(1.0)
+  
+  // Results (E = A * EF * GWP)
+  e_kg            Float
+  e_ton           Float
+  
+  created_at      DateTime @default(now())
+
+  @@index([calculation_id])
+  @@index([material_id])
+}
+
+// =========== CBAM COMPLIANCE TRACKING ===========
+model CBAMCompliance {
+  id                      String   @id @default(cuid())
+  calculation_id          String   @unique
+  
+  product_name            String
+  carbon_intensity        Float    // kg CO2 per unit product
+  eu_benchmark            Float?   // Threshold for this product category
+  risk_level              String   // Low | Medium | High
+  
+  recommendations         String   // JSON array of intervention suggestions
+  
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
+}
+
+// =========== AUDIT LOG ===========
+model AuditLog {
+  id              String   @id @default(cuid())
+  user_id         String
+  user            User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  action          String   // create_calc | update_material | override_credit | etc
+  resource_type   String   // Calculation | Material | User | GridFactor
+  resource_id     String?
+  
+  old_value       String?  // JSON snapshot of old state
+  new_value       String?  // JSON snapshot of new state
+  
+  ip_address      String?
+  user_agent      String?
+  
+  created_at      DateTime @default(now())
+
+  @@index([user_id])
+  @@index([resource_type])
+  @@index([action])
+}
+
+// =========== MARKET PRICES (for credit valuation) ===========
+model MarketPrice {
+  id              String   @id @default(cuid())
+  price_type      String   // EU_ETS | VCC
+  price_usd       Float
+  timestamp       DateTime @default(now())
+  source          String?  // API source or "manual"
+  
+  @@index([price_type])
+  @@index([timestamp])
+}
