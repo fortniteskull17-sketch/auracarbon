@@ -7,12 +7,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
   const session = await getServerSession(req, res, authConfig)
-  if (!session?.user || !session.user.id) {
+  if (!session?.user || !(session.user as any).id) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
   try {
-    const userId = session.user.id as string
+    const userId = (session.user as any).id as string
     const now = new Date()
     const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
     const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())

@@ -7,7 +7,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
   const session = await getServerSession(req, res, authConfig)
-  if (!session?.user || !session.user.id) {
+  if (!session?.user || !(session.user as any).id) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const calculations = await prisma.calculation.findMany({
       where: {
-        user_id: session.user.id as string,
+        user_id: (session.user as any).id as string,
       },
       include: {
         items: {
@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     const total = await prisma.calculation.count({
-      where: { user_id: session.user.id as string },
+      where: { user_id: (session.user as any).id as string },
     })
 
     return res.json({

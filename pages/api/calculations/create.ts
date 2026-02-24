@@ -23,7 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   const session = await getServerSession(req, res, authConfig)
-  if (!session?.user || !session.user.id) {
+  if (!session?.user || !(session.user as any).id) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
@@ -99,7 +99,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Save calculation to database
     const calculation = await prisma.calculation.create({
       data: {
-        user_id: session.user.id as string,
+        user_id: (session.user as any).id as string,
         tenant_id: (session.user as any).tenant_id,
         grid_id,
         calculation_name: calculation_name || `Calculation ${new Date().toLocaleDateString()}`,
@@ -128,7 +128,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Log to audit trail
     await prisma.auditLog.create({
       data: {
-        user_id: session.user.id as string,
+        user_id: (session.user as any).id as string,
         action: 'create_calculation',
         resource_type: 'Calculation',
         resource_id: calculation.id,
