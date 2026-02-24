@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import CalculatorPreview from '../../components/CalculatorPreview'
 import useCalculations from '../../hooks/useCalculations'
+import PieChart from '../../components/PieChart'
+import ChartCard from '../../components/ChartCard'
 
 export default function CalculatorPage() {
   const { materials, fetchMaterials, createCalculation } = useCalculations()
@@ -52,6 +54,19 @@ export default function CalculatorPage() {
 
         <div>
           <CalculatorPreview result={result} />
+
+          <div className="mt-4">
+            <ChartCard title="Scope breakdown">
+              {result?.scopeBreakdown ? (
+                <PieChart
+                  data={Object.entries(result.scopeBreakdown).map(([k, v]: any, i) => ({ label: k, value: Number(v), color: undefined }))}
+                  size={160}
+                />
+              ) : (
+                <div className="p-4 text-sm">No breakdown available</div>
+              )}
+            </ChartCard>
+          </div>
         </div>
       </div>
     </div>
