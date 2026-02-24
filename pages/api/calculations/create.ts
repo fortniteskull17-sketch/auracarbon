@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
-import { authConfig } from '@/lib/auth.config'
-import { prisma } from '@/lib/prisma'
-import CarbonEngine from '@/lib/carbon-engine'
+import { authConfig } from '../../../lib/auth.config'
+import { prisma } from '../../../lib/prisma'
+import CarbonEngine from '../../../lib/carbon-engine'
 import { z } from 'zod'
 
 const calculateSchema = z.object({

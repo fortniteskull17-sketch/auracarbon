@@ -1,5 +1,5 @@
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
-import type { NextAuthConfig } from 'next-auth'
+import type { NextAuthOptions } from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import Google from 'next-auth/providers/google'
 import GitHub from 'next-auth/providers/github'
@@ -14,7 +14,7 @@ const signInSchema = z.object({
 })
 
 // ========== NEXTAUTH CONFIG ==========
-export const authConfig: NextAuthConfig = {
+export const authConfig: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     // ===== CREDENTIALS PROVIDER (Email + Password) =====
@@ -128,8 +128,8 @@ export const authConfig: NextAuthConfig = {
     // ===== SESSION CALLBACK: Add custom info to session =====
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string
-        session.user.role = token.role as string
+        ;(session.user as any).id = token.id as string
+        ;(session.user as any).role = token.role as string
         ;(session.user as any).tenant_id = token.tenant_id as string
       }
       return session
