@@ -10,7 +10,7 @@ datasource db {
 // =========== TENANTS (Multi-tenancy) ===========
 model Tenant {
   id                String   @id @default(cuid())
-  name              String
+  name              String   @unique
   country           String
   industry_type     String   // e.g., "Steel Manufacturing", "Cement", "Chemical"
   subscription_tier String   @default("FREE") // FREE | PRO | ENTERPRISE
