@@ -1,11 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
-import { useSession, SessionProvider } from 'next-auth/react'
-import type { GetServerSideProps } from 'next'
 
-function HomePageContent() {
-  const { data: session } = useSession()
-
+export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0b1020] via-[#0d131d] to-[#0f1724] text-gray-100 overflow-hidden">
       {/* Animated background gradient */}
@@ -19,32 +15,18 @@ function HomePageContent() {
         <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
           <div className="text-3xl font-bold bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-clip-text text-transparent">✨ AuraCarbon</div>
           <div className="flex gap-3 items-center">
-            {session ? (
-              <>
-                <span className="text-sm text-gray-300 hidden sm:inline">Welcome, <span className="text-indigo-300 font-semibold">{session.user?.name || session.user?.email?.split('@')[0]}</span></span>
-                <a
-                  href="/api/auth/signout"
-                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white text-sm font-medium transition-all duration-300 transform hover:scale-105 active:scale-95"
-                >
-                  Sign out
-                </a>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/auth/login"
-                  className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-indigo-300/30 hover:border-indigo-300 text-indigo-300 text-sm font-medium transition-all duration-300 transform hover:scale-105 active:scale-95"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  href="/auth/register"
-                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-medium transition-all duration-300 transform hover:scale-105 active:scale-95"
-                >
-                  Register
-                </Link>
-              </>
-            )}
+            <Link
+              href="/auth/login"
+              className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-indigo-300/30 hover:border-indigo-300 text-indigo-300 text-sm font-medium transition-all duration-300 transform hover:scale-105 active:scale-95"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/auth/register"
+              className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-medium transition-all duration-300 transform hover:scale-105 active:scale-95"
+            >
+              Register
+            </Link>
           </div>
         </div>
       </nav>
@@ -104,17 +86,15 @@ function HomePageContent() {
             </div>
           </Link>
 
-          {(session?.user as any)?.role === 'ADMIN' || (session?.user as any)?.role === 'SUPER_ADMIN' ? (
-            <Link href="/admin">
-              <div className="group p-8 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-2xl border border-white/20 hover:border-orange-400 cursor-pointer transition-all duration-500 transform hover:scale-105 hover:shadow-2xl hover:shadow-orange-500/20">
-                <div className="text-4xl mb-3">👨‍💼</div>
-                <h3 className="text-xl font-bold mb-3 group-hover:text-orange-300 transition-colors">Admin</h3>
-                <p className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors leading-relaxed">
-                  Manage users, materials, and compliance settings
-                </p>
-              </div>
-            </Link>
-          ) : null}
+          <Link href="/admin">
+            <div className="group p-8 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-2xl border border-white/20 hover:border-orange-400 cursor-pointer transition-all duration-500 transform hover:scale-105 hover:shadow-2xl hover:shadow-orange-500/20">
+              <div className="text-4xl mb-3">👨‍💼</div>
+              <h3 className="text-xl font-bold mb-3 group-hover:text-orange-300 transition-colors">Admin</h3>
+              <p className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors leading-relaxed">
+                Manage users, materials, and compliance settings
+              </p>
+            </div>
+          </Link>
 
           <div className="p-8 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-2xl border border-white/20 hover:border-cyan-400 transition-all duration-500 transform hover:scale-105 hover:shadow-2xl hover:shadow-cyan-500/20 group cursor-pointer">
             <div className="text-4xl mb-3">📚</div>
@@ -144,19 +124,4 @@ function HomePageContent() {
       </div>
     </div>
   )
-}
-
-export default function HomePage() {
-  return (
-    <SessionProvider>
-      <HomePageContent />
-    </SessionProvider>
-  )
-}
-
-export const getServerSideProps: GetServerSideProps = async () => {
-  return {
-    props: {},
-    revalidate: 0, // Don't cache - render on demand
-  }
 }
