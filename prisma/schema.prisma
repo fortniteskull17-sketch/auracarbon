@@ -71,7 +71,7 @@ model VerificationToken {
 // =========== MATERIALS LIBRARY ===========
 model RawMaterial {
   id                    String   @id @default(cuid())
-  name                  String
+  name                  String   @unique
   category              String   // Steel | Cement | Aluminum | Coal | Natural Gas | Biomass | etc
   base_unit             String   // ton | kg | m3 | liter
   description           String?
